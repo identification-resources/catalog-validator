@@ -8,15 +8,15 @@ const FORMATS = {
   COMPLETE: ['TRUE', 'FALSE'],
 
   ID: /^B\d+$/,
-  URL: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
-  EDTF_0: /^(\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}:\d{2}(Z|[-+]\d{2}(:\d{2})?))?)?)?|\d{4}(-\d{2}(-\d{2})?)?\/\d{4}(-\d{2}(-\d{2})?)?)$/,
+  EDTF_0: /^(\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}:\d{2}(Z|[-+]\d{2}(:\d{2})?))?)?)?|\d{4}(-\d{2}(-\d{2})?)?\/(\d{4}(-\d{2}(-\d{2})?)?|\.\.))$/,
   ISSN_L: /^[0-9]{4}-[0-9]{3}[0-9X]$/,
   ISBN: /^(\d{13}|\d{9}[0-9X])$/,
   DOI: /^10\./,
   QID: /^Q[1-9][0-9]*$/,
 
-  LICENSE (value) { return spdxLicenseList[value] },
-  LANGUAGE (value) { return ietfTagList.test(value) }
+  LICENSE (value) { return /<(public domain|.+\?)>/.test(value) || spdxLicenseList[value] },
+  LANGUAGE (value) { return ietfTagList.test(value) },
+  URL (value) { return /^(ftp|http|https):\/\/((?:[a-z0-9][a-z0-9-_]*?[a-z0-9]?\.)+(?:xn--)?[a-z0-9]+)(:\d*)?((?:\/(?:%\d\d|[!$&'()*+,\-.0-9";=@A-Z_a-z~])*)*)(\?(?:%\d\d|[!$&'()*+,\-./0-9:;=?@A-Z_a-z~])*)?(#(?:%\d\d|[!$&'()*+,\-./0-9:;=?@A-Z_a-z~])*)?/i.test(value) }
 }
 
 const CHECK = {
@@ -24,10 +24,10 @@ const CHECK = {
 
   ISBN (entry) {
     if (entry.ISBN.length < 2) { return false }
-    const a = entry.ISBN.length[0].length === 10
-    const b = entry.ISBN.length[0].length === 13
-    const c = entry.ISBN.length[1].length === 10
-    const d = entry.ISBN.length[1].length === 13
+    const a = entry.ISBN[0].length === 10
+    const b = entry.ISBN[0].length === 13
+    const c = entry.ISBN[1].length === 10
+    const d = entry.ISBN[1].length === 13
     return (a && d) || (b && c)
   }
 }
@@ -36,7 +36,7 @@ const SCHEMA = {
   catalog: {
     id: { required: true, multiple: false, format: FORMATS.ID },
     title: { required: true, multiple: CHECK.MULTILANG },
-    author: { required: false, multiple: true},
+    author: { required: false, multiple: true },
     url: { required: false, multiple: true, format: FORMATS.URL },
     fulltext_url: { required: false, multiple: true, format: FORMATS.URL },
     archive_url: { required: false, multiple: true, format: FORMATS.URL },
@@ -83,7 +83,7 @@ const SCHEMA = {
 
 function validateValue (entry, sheet, field, value) {
   if (!SCHEMA[sheet][field].format) {
-    return
+    return undefined
   } else if (Array.isArray(SCHEMA[sheet][field].format) && !SCHEMA[sheet][field].format.includes(value)) {
     throw new Error(`The value "${chalk.green(value)}" is not included: ${chalk.yellow(SCHEMA[sheet][field].format.join(', '))}`)
   } else if (SCHEMA[sheet][field].format instanceof RegExp && !SCHEMA[sheet][field].format.test(value)) {
@@ -95,7 +95,7 @@ function validateValue (entry, sheet, field, value) {
 
 function validateField (entry, sheet, field) {
   if (SCHEMA[sheet][field].required && !entry[field].toString()) {
-    throw new Error(`Value(s) required but missing`)
+    throw new Error('Value(s) required but missing')
   } else if (!entry[field].toString()) {
     return
   }
@@ -105,7 +105,7 @@ function validateField (entry, sheet, field) {
     : SCHEMA[sheet][field].multiple
 
   if (multiple === false && entry[field].includes('; ')) {
-    throw new Error(`Multiple values but only one expected`)
+    throw new Error('Multiple values but only one expected')
   }
 
   if (Array.isArray(entry[field])) {
@@ -152,8 +152,8 @@ function parseEntry (row, sheet) {
 function parseFile (file) {
   return file
     .trim()
+    .replace(/$/, '\n')
     .match(/("([^"]|"")*?"|[^,\n]*)(,|\n|$)/g)
-    .slice(0, -1)
     .reduce((rows, value) => {
       const last = rows[rows.length - 1]
       if (value.endsWith('\n')) {
@@ -163,7 +163,7 @@ function parseFile (file) {
       last.push(value.startsWith('"') ? value.replace(/""/g, '"').slice(1, -1) : value)
       return rows
     }, [[]])
-    .slice(1)
+    .slice(1, -1)
 }
 
 function validate (file, sheet) {
