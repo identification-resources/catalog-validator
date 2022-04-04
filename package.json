@@ -1,0 +1,27 @@
+{
+  "name": "validator",
+  "version": "0.0.0",
+  "description": "Validator for Library of Identification Resources catalog data",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/identification-resources/catalog-validator.git"
+  },
+  "author": "Lars Willighagen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/identification-resources/catalog-validator/issues"
+  },
+  "homepage": "https://github.com/identification-resources/catalog-validator#readme",
+  "devDependencies": {
+    "standard": "^16.0.4"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "ietf-language-tag-regex": "^0.0.5",
+    "spdx-license-list": "^6.4.0"
+  }
+}
