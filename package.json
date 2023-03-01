@@ -1,6 +1,6 @@
 {
   "name": "@larsgw/loir-catalog-validator",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Validator for Library of Identification Resources catalog data",
   "main": "index.js",
   "bin": {
